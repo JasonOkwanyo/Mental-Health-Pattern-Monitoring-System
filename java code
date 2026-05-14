@@ -136,35 +136,79 @@ public class MentalHealthMonitoringSystem {
         System.out.println("exit      -> Exit program");
     }
 
+
     public static void addMoodEntry() {
-        System.out.println("\n========== ADD MOOD ENTRY ==========");
-        System.out.print("Enter Date (YYYY-MM-DD): ");
-        String date = scanner.nextLine();
-        System.out.print("Enter Mood: ");
-        String mood = scanner.nextLine();
-        System.out.print("Enter Trigger: ");
-        String trigger = scanner.nextLine();
+    System.out.println("\n========== ADD MOOD ENTRY ==========");
 
-        int stressLevel;
-        while (true) {
-            try {
-                System.out.print("Enter Stress Level (1-10): ");
-                stressLevel = Integer.parseInt(scanner.nextLine());
-                if (stressLevel >= 1 && stressLevel <= 10) break;
-                System.out.println("Stress level must be between 1 and 10.");
-            } catch (NumberFormatException e) {
-                System.out.println("Invalid number.");
+    String date = "";
+    String mood = "";
+    String trigger = "";
+    int stressLevel = 0;
+
+    while (true) {
+        try {
+            System.out.print("Enter Date (YYYY-MM-DD): ");
+            date = scanner.nextLine().trim();
+            if (date.isEmpty()) {
+                System.out.println("Date cannot be empty.");
+                continue;
             }
+            break;
+        } catch (Exception e) {
+            System.out.println("Error reading input. Please try again.");
         }
-
-        MoodEntry entry = new MoodEntry(date, mood, trigger, stressLevel);
-        moodQueue.add(entry);
-        recentEntries.push(entry);
-        emotionGraph.putIfAbsent(mood, new ArrayList<>());
-        emotionGraph.get(mood).add(trigger);
-
-        System.out.println(GREEN + "\nMood entry added successfully." + RESET);
     }
+
+    while (true) {
+        try {
+            System.out.print("Enter Mood: ");
+            mood = scanner.nextLine().trim();
+
+            if (mood.isEmpty() || !mood.matches("[a-zA-Z\\s]+")) {
+                throw new IllegalArgumentException("Mood must only contain letters (no numbers or special characters).");
+            }
+            break;
+        } catch (IllegalArgumentException e) {
+            System.out.println("Invalid Input: " + e.getMessage());
+        }
+    }
+
+    while (true) {
+        try {
+            System.out.print("Enter Trigger: ");
+            trigger = scanner.nextLine().trim();
+
+            if (trigger.isEmpty() || !trigger.matches("[a-zA-Z\\s]+")) {
+                throw new IllegalArgumentException("Trigger must only contain letters (no numbers or special characters).");
+            }
+            break;
+        } catch (IllegalArgumentException e) {
+            System.out.println("Invalid Input: " + e.getMessage());
+        }
+    }
+
+    while (true) {
+        try {
+            System.out.print("Enter Stress Level (1-10): ");
+            stressLevel = Integer.parseInt(scanner.nextLine());
+            if (stressLevel >= 1 && stressLevel <= 10) break;
+            System.out.println("Stress level must be between 1 and 10.");
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid number. Please enter a digit (1-10).");
+        } catch (Exception e) {
+            System.out.println("An unexpected error occurred.");
+        }
+    }
+
+    MoodEntry entry = new MoodEntry(date, mood, trigger, stressLevel);
+    moodQueue.add(entry);
+    recentEntries.push(entry);
+    emotionGraph.putIfAbsent(mood, new ArrayList<>());
+    emotionGraph.get(mood).add(trigger);
+
+    System.out.println(GREEN + "\nMood entry added successfully." + RESET);
+}
+
 
     public static void viewMoodHistory() {
         System.out.println("\n========== MOOD HISTORY ==========");
