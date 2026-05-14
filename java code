@@ -1,0 +1,460 @@
+import java.util.*;
+
+public class MentalHealthMonitoringSystem {
+
+    /*
+       MOOD ENTRY CLASS
+    */
+
+    static class MoodEntry {
+
+        String date;
+        String mood;
+        String trigger;
+        int stressLevel;
+
+        public MoodEntry(String date, String mood,
+                         String trigger, int stressLevel) {
+
+            this.date = date;
+            this.mood = mood;
+            this.trigger = trigger;
+            this.stressLevel = stressLevel;
+        }
+
+        @Override
+        public String toString() {
+
+            return "Date: " + date +
+                    " | Mood: " + mood +
+                    " | Trigger: " + trigger +
+                    " | Stress Level: " + stressLevel;
+        }
+    }
+
+    /*
+       TREE NODE CLASS
+    */
+
+    static class TreeNode {
+
+        String category;
+        List<TreeNode> children;
+
+        public TreeNode(String category) {
+
+            this.category = category;
+            children = new ArrayList<>();
+        }
+
+        public void addChild(TreeNode child) {
+
+            children.add(child);
+        }
+
+        public void display(String indent) {
+
+            System.out.println(indent + category);
+
+            for (TreeNode child : children) {
+
+                child.display(indent + "   ");
+            }
+        }
+    }
+
+    /*
+       DATA STRUCTURES
+  */
+
+    // Queue -> chronological storage
+    static Queue<MoodEntry> moodQueue = new LinkedList<>();
+
+    // Stack -> recent entries for undo
+    static Stack<MoodEntry> recentEntries = new Stack<>();
+
+    // Graph -> emotion and trigger relationships
+    static Map<String, List<String>> emotionGraph = new HashMap<>();
+
+    // Scanner
+    static Scanner scanner = new Scanner(System.in);
+
+    // Tree Root
+    static TreeNode root;
+
+    /*
+       COLORS
+    */
+    static final String GREEN = "\u001B[32m";
+    static final String YELLOW = "\u001B[33m";
+    static final String CYAN = "\u001B[36m";
+    static final String RED = "\u001B[31m";
+    static final String RESET = "\u001B[0m";
+
+
+    /*
+       MAIN METHOD
+     */
+
+    public static void main(String[] args) {
+
+        initializeTree();
+        initializeGraph();
+
+        showWelcome();
+
+        while (true) {
+
+            System.out.print("\nMentalHealthSystem> ");
+
+            String command = scanner.nextLine()
+                    .trim()
+                    .toLowerCase();
+
+            switch (command) {
+
+                case "add":
+                    addMoodEntry();
+                    break;
+
+                case "history":
+                    viewMoodHistory();
+                    break;
+
+                case "undo":
+                    undoRecentEntry();
+                    break;
+
+                case "tree":
+                    displayTree();
+                    break;
+
+                case "graph":
+                    displayGraph();
+                    break;
+
+                case "analyze":
+                    analyzePatterns();
+                    break;
+
+                case "help":
+                    showHelp();
+                    break;
+
+                case "clear":
+                    clearScreen();
+                    break;
+
+                case "exit":
+                    System.out.println("\nClosing System...");
+                    System.out.println("Goodbye!");
+                    return;
+
+                default:
+                    System.out.println("\nUnknown command.");
+                    System.out.println("Type 'help' to see commands.");
+            }
+        }
+    }
+
+    /*
+       WELCOME SCREEN
+     */
+
+    public static void showWelcome() {
+
+        System.out.println("\n╔════════════════════════════════════════════╗");
+        System.out.println("║   🧠 MENTAL HEALTH MONITORING SYSTEM      ║");
+        System.out.println("║   Emotional Pattern Tracking Dashboard    ║");
+        System.out.println("╚════════════════════════════════════════════╝");
+
+        System.out.println("\n✨ System initialized successfully!");
+        System.out.println("📌 Type 'help' to view commands\n");
+    }
+
+    /* ========================================================
+       HELP MENU
+    ======================================================== */
+
+    public static void showHelp() {
+
+        System.out.println("\n╔════════════════════════════════╗");
+        System.out.println("║      📌 AVAILABLE COMMANDS        ║");
+        System.out.println("╚════════════════════════════════╝");
+
+        System.out.println("add       -> Add a new mood entry");
+        System.out.println("history   -> View mood history");
+        System.out.println("undo      -> Undo recent entry");
+        System.out.println("tree      -> View mental health tree");
+        System.out.println("graph     -> View emotion-trigger graph");
+        System.out.println("analyze   -> Analyze emotional patterns");
+        System.out.println("clear     -> Clear terminal");
+        System.out.println("help      -> Show commands");
+        System.out.println("exit      -> Exit program");
+    }
+
+    /*
+       ADD MOOD ENTRY
+    */
+
+    public static void addMoodEntry() {
+
+        System.out.println("\n========== ADD MOOD ENTRY ==========");
+
+        System.out.print("Enter Date (YYYY-MM-DD): ");
+        String date = scanner.nextLine();
+
+        System.out.print("Enter Mood: ");
+        String mood = scanner.nextLine();
+
+        System.out.print("Enter Trigger: ");
+        String trigger = scanner.nextLine();
+
+        int stressLevel;
+
+        while (true) {
+
+            try {
+
+                System.out.print("Enter Stress Level (1-10): ");
+
+                stressLevel = Integer.parseInt(scanner.nextLine());
+
+                if (stressLevel < 1 || stressLevel > 10) {
+
+                    System.out.println("Stress level must be between 1 and 10.");
+                    continue;
+                }
+
+                break;
+
+            } catch (NumberFormatException e) {
+
+                System.out.println("Invalid number.");
+            }
+        }
+
+        MoodEntry entry = new MoodEntry(
+                date,
+                mood,
+                trigger,
+                stressLevel
+        );
+
+        // QUEUE
+        moodQueue.add(entry);
+
+        // STACK
+        recentEntries.push(entry);
+
+        // GRAPH
+        emotionGraph.putIfAbsent(mood, new ArrayList<>());
+        emotionGraph.get(mood).add(trigger);
+
+
+        System.out.println(GREEN + "\nMood entry added successfully.✔" + RESET);
+    }
+
+    /*
+       VIEW HISTORY
+     */
+
+    public static void viewMoodHistory() {
+
+        System.out.println("\n========== MOOD HISTORY ==========");
+
+
+        if (moodQueue.isEmpty()) {
+
+            System.out.println("No mood entries available.");
+            return;
+        }
+
+        for (MoodEntry entry : moodQueue) {
+
+            System.out.println("\n────────────────────────────");
+            System.out.println("📅 Date   : " + entry.date);
+            System.out.println("😊 Mood   : " + entry.mood);
+            System.out.println("⚡ Trigger: " + entry.trigger);
+            System.out.println("🔥 Stress : " + entry.stressLevel);
+            System.out.println("────────────────────────────");
+        }
+    }
+
+    /*
+       UNDO ENTRY
+     */
+
+    public static void undoRecentEntry() {
+
+        if (recentEntries.isEmpty()) {
+
+            System.out.println("\nNo recent entries to undo.");
+            return;
+        }
+
+        MoodEntry removed = recentEntries.pop();
+
+        moodQueue.remove(removed);
+
+        System.out.println("\nRecent entry removed:");
+        System.out.println(removed);
+    }
+
+    /*
+       TREE INITIALIZATION
+     */
+
+    public static void initializeTree() {
+
+        root = new TreeNode("Mental Health");
+
+        // Stress Category
+        TreeNode stress = new TreeNode("Stress");
+        stress.addChild(new TreeNode("Academic Pressure"));
+        stress.addChild(new TreeNode("Workload"));
+        stress.addChild(new TreeNode("Financial Problems"));
+
+        // Anxiety Category
+        TreeNode anxiety = new TreeNode("Anxiety");
+        anxiety.addChild(new TreeNode("Social Anxiety"));
+        anxiety.addChild(new TreeNode("Fear of Failure"));
+
+        // Burnout Category
+        TreeNode burnout = new TreeNode("Burnout");
+        burnout.addChild(new TreeNode("Overworking"));
+        burnout.addChild(new TreeNode("Lack of Sleep"));
+
+        // Emotional State
+        TreeNode emotional = new TreeNode("Emotional State");
+        emotional.addChild(new TreeNode("Happiness"));
+        emotional.addChild(new TreeNode("Sadness"));
+        emotional.addChild(new TreeNode("Loneliness"));
+
+        // Attach categories
+        root.addChild(stress);
+        root.addChild(anxiety);
+        root.addChild(burnout);
+        root.addChild(emotional);
+    }
+
+    /*
+       DISPLAY TREE
+     */
+
+    public static void displayTree() {
+
+        System.out.println("\n╔════════════════════════════╗");
+        System.out.println("║   🌳 MENTAL HEALTH TREE    ║");
+        System.out.println("╚════════════════════════════╝");
+
+        root.display("");
+    }
+
+    /*
+       INITIALIZE GRAPH
+    */
+
+    public static void initializeGraph() {
+
+        // Empty graph initially
+    }
+
+    /*
+       DISPLAY GRAPH
+    */
+
+    public static void displayGraph() {
+
+        System.out.println("\n╔════════════════════════════════════╗");
+        System.out.println("║   🔗 EMOTION–TRIGGER NETWORK         ║");
+        System.out.println("╚════════════════════════════════════╝");
+
+        if (emotionGraph.isEmpty()) {
+
+            System.out.println("No emotional data available.");
+            return;
+        }
+
+        for (String emotion : emotionGraph.keySet()) {
+
+            System.out.println("\n🔹 " + emotion);
+
+            for (String trigger : emotionGraph.get(emotion)) {
+
+                System.out.println("   └── " + trigger);
+            }
+        }
+    }
+
+    /*
+       ANALYZE PATTERNS
+    */
+
+    public static void analyzePatterns() {
+
+        System.out.println("\n╔════════════════════════════╗");
+        System.out.println("║   📊 PATTERN ANALYSIS      ║");
+        System.out.println("╚════════════════════════════╝");
+
+        Map<String, Integer> freq = new HashMap<>();
+        int high = 0;
+
+        if (moodQueue.isEmpty()) {
+
+            System.out.println("No data available.");
+            return;
+        }
+
+        int highStressDays = 0;
+
+        Map<String, Integer> moodFrequency = new HashMap<>();
+
+        for (MoodEntry entry : moodQueue) {
+
+            // Detect high stress
+            if (entry.stressLevel >= 7) {
+
+                highStressDays++;
+            }
+
+            // Count mood frequency
+            moodFrequency.put(
+                    entry.mood,
+                    moodFrequency.getOrDefault(entry.mood, 0) + 1
+            );
+        }
+
+        System.out.println("High Stress Days: " + highStressDays);
+
+        System.out.println("\nMood Frequency:");
+
+        for (String mood : moodFrequency.keySet()) {
+
+            System.out.println(mood + ": " + moodFrequency.get(mood));
+        }
+
+        // Burnout Detection
+        if (highStressDays >= 3) {
+
+            System.out.println("\n⚠️  ALERT:");
+            System.out.println("🚨 Possible prolonged stress or burnout detected!");
+
+        } else {
+
+            System.out.println("\nStress levels appear manageable.");
+        }
+    }
+
+    /*
+       CLEAR TERMINAL
+    */
+
+    public static void clearScreen() {
+
+        for (int i = 0; i < 50; i++) {
+
+            System.out.println();
+        }
+    }
+}
