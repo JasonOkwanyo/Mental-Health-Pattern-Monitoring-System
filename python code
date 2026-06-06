@@ -1,240 +1,149 @@
+from datetime import datetime
 import re
-import os
-from collections import deque
-
-# --- COLORS ---
-GREEN = "\033[32m"
-RED = "\033[31m"
-RESET = "\033[0m"
-
-# --- CLASSES ---
 
 class MoodEntry:
-    """Equivalent to the Java MoodEntry class."""
-    def __init__(self, date, mood, trigger, stress_level):
-        self.date = date
+    def __init__(self, mood, trigger, stress_level):
+        self.timestamp = datetime.now()
         self.mood = mood
         self.trigger = trigger
         self.stress_level = stress_level
 
     def __str__(self):
-        return (f"Date: {self.date} | Mood: {self.mood} | "
-                f"Trigger: {self.trigger} | Stress Level: {self.stress_level}")
+        time_str = self.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        return f" Time: {time_str} | Mood: {self.mood} | Trigger: {self.trigger} | Stress Level: {self.stress_level}"
 
 class TreeNode:
-    """Equivalent to the Java TreeNode class."""
-    def __init__(self, category):
-        self.category = category
-        self.children = []
+    def __init__(self, data):
+        self.data = data
+        self.left = None
+        self.right = None
 
-    def add_child(self, child_node):
-        self.children.append(child_node)
+class AnalysisData:
+    def __init__(self):
+        self.high_stress_days = 0
+        self.mood_frequency = {}
 
-    def display(self, indent=""):
-        print(f"{indent}{self.category}")
-        for child in self.children:
-            child.display(indent + "    ")
+class MentalHealthMonitoringSystem:
+    def __init__(self):
+        self.root = None
 
-# --- DATA STRUCTURES ---
+    def insert(self, node, data):
+        if node is None:
+            return TreeNode(data)
+        if data.timestamp < node.data.timestamp:
+            node.left = self.insert(node.left, data)
+        else:
+            node.right = self.insert(node.right, data)
+        return node
 
-mood_queue = deque()      # Queue -> chronological storage
-recent_entries = []       # Stack -> recent entries for undo
-emotion_graph = {}        # Map -> emotion and trigger relationships
-root = None               # Tree root
+    def display_history_chronological(self, node):
+        if node is not None:
+            self.display_history_chronological(node.left)
+            print(node.data)
+            self.display_history_chronological(node.right)
 
-# --- CORE FUNCTIONS ---
+    def compute_patterns(self, node, data):
+        if node is not None:
+            self.compute_patterns(node.left, data)
+            if node.data.stress_level >= 7:
+                data.high_stress_days += 1
+            data.mood_frequency[node.data.mood] = data.mood_frequency.get(node.data.mood, 0) + 1
+            self.compute_patterns(node.right, data)
 
-def initialize_tree():
-    global root
-    root = TreeNode("Mental Health")
-    
-    stress = TreeNode("Stress")
-    stress.add_child(TreeNode("Academic Pressure"))
-    stress.add_child(TreeNode("Workload"))
-    
-    anxiety = TreeNode("Anxiety")
-    anxiety.add_child(TreeNode("Social Anxiety"))
-    
-    root.add_child(stress)
-    root.add_child(anxiety)
+    def show_welcome(self):
+        print("\nMENTAL HEALTH TREE STORAGE")
+        print("\nDatabase Login System\n")
+        print(" System initialized successfully!")
 
-def show_welcome():
-    print("\n+--------------------------------------------+")
-    print("|      MENTAL HEALTH MONITORING SYSTEM       |")
-    print("|      Emotional Pattern Tracking Dashboard    |")
-    print("+--------------------------------------------+")
-    print("\nSystem initialized successfully!")
+    def show_help(self):
+        print("\nadd     -> Log a mood entry anytime")
+        print("history -> View sorted mood history")
+        print("analyze -> Analyze emotional patterns")
+        print("help    -> Display system commands")
+        print("exit    -> Exit program")
 
-def show_help():
-    print("\n+--------------------------------+")
-    print("|       AVAILABLE COMMANDS       |")
-    print("+--------------------------------+")
-    print("add       -> Add a new mood entry")
-    print("history   -> View mood history")
-    print("undo      -> Undo recent entry")
-    print("tree      -> View mental health tree")
-    print("graph     -> View emotion-trigger graph")
-    print("analyze   -> Analyze emotional patterns")
-    print("clear     -> Clear terminal")
-    print("help      -> Show commands")
-    print("exit      -> Exit program")
+    def add_mood_entry(self):
+        print("\nREAL-TIME LOGIN")
 
-def add_mood_entry():
-    print("\n========== ADD MOOD ENTRY ==========")
-    
-    # Date validation
-    while True:
-        date = input("Enter Date (YYYY-MM-DD): ").strip()
-        if not date:
-            print(f"{RED}Date cannot be empty.{RESET}")
-            continue
-        break
-
-    # Mood validation (Letters and spaces only)
-    while True:
-        try:
-            mood = input("Enter Mood: ").strip()
-            if not mood or not re.match(r"^[a-zA-Z\s]+$", mood):
-                raise ValueError("Mood must only contain letters (no numbers or special characters).")
-            break
-        except ValueError as e:
-            print(f"{RED}Invalid Input: {e}{RESET}")
-
-    # Trigger validation (Letters and spaces only)
-    while True:
-        try:
-            trigger = input("Enter Trigger: ").strip()
-            if not trigger or not re.match(r"^[a-zA-Z\s]+$", trigger):
-                raise ValueError("Trigger must only contain letters (no numbers or special characters).")
-            break
-        except ValueError as e:
-            print(f"{RED}Invalid Input: {e}{RESET}")
-
-    # Stress Level validation (Integer 1-10)
-    while True:
-        try:
-            stress_level = int(input("Enter Stress Level (1-10): "))
-            if 1 <= stress_level <= 10:
+        while True:
+            try:
+                mood = input("Enter Mood: ").strip()
+                if not mood or not re.match(r"^[a-zA-Z\s]+$", mood):
+                    raise ValueError("Mood must only contain letters (no numbers or special characters).")
                 break
-            print(f"{RED}Stress level must be between 1 and 10.{RESET}")
-        except ValueError:
-            print(f"{RED}Invalid number. Please enter a digit (1-10).{RESET}")
+            except ValueError as e:
+                print(f"Invalid Input: {e}")
 
-    entry = MoodEntry(date, mood, trigger, stress_level)
-    
-    # Adding to structures
-    mood_queue.append(entry)
-    recent_entries.append(entry)
-    
-    if mood not in emotion_graph:
-        emotion_graph[mood] = []
-    emotion_graph[mood].append(trigger)
+        while True:
+            try:
+                trigger = input("Enter Trigger: ").strip()
+                if not trigger or not re.match(r"^[a-zA-Z\s]+$", trigger):
+                    raise ValueError("Trigger must only contain letters (no numbers or special characters).")
+                break
+            except ValueError as e:
+                print(f"Invalid Input: {e}")
 
-    print(f"{GREEN}\nMood entry added successfully.{RESET}")
+        while True:
+            try:
+                stress_level_input = input("Enter Stress Level (1-10): ")
+                stress_level = int(stress_level_input)
+                if 1 <= stress_level <= 10:
+                    break
+                print("Stress level must be between 1 and 10.")
+            except ValueError:
+                print("Invalid number. Please enter a digit (1-10).")
+            except Exception:
+                print("An unexpected error occurred.")
 
-def view_mood_history():
-    print("\n========== MOOD HISTORY ==========")
-    if not mood_queue:
-        print("No mood entries available.")
-        return
-    for entry in mood_queue:
-        print("\n----------------------------")
-        print(f"Date    : {entry.date}")
-        print(f"Mood    : {entry.mood}")
-        print(f"Trigger : {entry.trigger}")
-        print(f"Stress  : {entry.stress_level}")
-        print("----------------------------")
+        entry = MoodEntry(mood, trigger, stress_level)
+        self.root = self.insert(self.root, entry)
+        print("\nLog recorded dynamically into the tree structure!")
 
-def undo_recent_entry():
-    if not recent_entries:
-        print("\nNo recent entries to undo.")
-        return
-    removed = recent_entries.pop()
-    mood_queue.remove(removed)
-    print(f"\nRecent entry removed: {removed}")
+    def view_history(self):
+        print("\nCHRONOLOGICAL TREE TRAVERSAL")
+        if self.root is None:
+            print("Database is currently empty.")
+            return
+        self.display_history_chronological(self.root)
 
-def display_tree():
-    print("\n+----------------------------+")
-    print("|      MENTAL HEALTH TREE    |")
-    print("+----------------------------+")
-    if root:
-        root.display()
+    def analyze_patterns(self):
+        print("\nPATTERN RECOGNITION")
+        if self.root is None:
+            print("Insufficient data for analysis.")
+            return
 
-def display_graph():
-    print("\n+------------------------------------+")
-    print("|    EMOTION-TRIGGER NETWORK         |")
-    print("+------------------------------------+")
-    if not emotion_graph:
-        print("No emotional data available.")
-        return
-    for mood, triggers in emotion_graph.items():
-        print(f"\n* {mood}")
-        for trigger in triggers:
-            print(f"   |-- {trigger}")
+        data = AnalysisData()
+        self.compute_patterns(self.root, data)
 
-def analyze_patterns():
-    print("\n+----------------------------+")
-    print("|      PATTERN ANALYSIS      |")
-    print("+----------------------------+")
-    if not mood_queue:
-        print("No data available.")
-        return
+        print(f"Total High Stress Incidents (>=7): {data.high_stress_days}")
+        print("\nLogged Mood Frequencies:")
+        for mood, count in data.mood_frequency.items():
+            print(f" - {mood}: {count} time(s)")
 
-    high_stress_days = 0
-    mood_frequency = {}
+        if data.high_stress_days >= 3:
+            print("\nBurnout patterns detected through records.")
+        else:
+            print("\n Analysis indicates stable mental health.")
 
-    for entry in mood_queue:
-        if entry.stress_level >= 7:
-            high_stress_days += 1
-        mood_frequency[entry.mood] = mood_frequency.get(entry.mood, 0) + 1
-
-    print(f"High Stress Days: {high_stress_days}")
-    print("\nMood Frequency:")
-    for mood, count in mood_frequency.items():
-        print(f"{mood}: {count}")
-
-    if high_stress_days >= 3:
-        print(f"\n{RED}ALERT: Possible prolonged stress detected!{RESET}")
-    else:
-        print("\nStress levels appear manageable.")
-
-def clear_screen():
-    # Cross-platform clear or just print 50 lines to match Java original
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-# --- MAIN LOOP ---
-
-def main():
-    initialize_tree()
-    show_welcome()
-
-    while True:
-        try:
-            command = input("\nMentalHealthSystem> ").strip().lower()
-
+    def run(self):
+        self.show_welcome()
+        while True:
+            command = input("\nMentalHealthTree Database> ").strip().lower()
             if command == "add":
-                add_mood_entry()
+                self.add_mood_entry()
             elif command == "history":
-                view_mood_history()
-            elif command == "undo":
-                undo_recent_entry()
-            elif command == "tree":
-                display_tree()
-            elif command == "graph":
-                display_graph()
+                self.view_history()
             elif command == "analyze":
-                analyze_patterns()
+                self.analyze_patterns()
             elif command == "help":
-                show_help()
-            elif command == "clear":
-                clear_screen()
+                self.show_help()
             elif command == "exit":
-                print("\nClosing System...\nGoodbye!")
+                print("\nClosing System...")
+                print("Goodbye!")
                 break
             else:
-                print("\nUnknown command. Type 'help' to see commands.")
-        except EOFError:
-            break
+                print("\nUnknown command. Type 'help' to view valid options.")
 
 if __name__ == "__main__":
-    main()
+    system = MentalHealthMonitoringSystem()
+    system.run()
